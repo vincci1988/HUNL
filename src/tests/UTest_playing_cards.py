@@ -1,5 +1,5 @@
 import unittest
-from src.exp.playing_cards import *
+from src.exp.playing_cards import Deck
 
 
 class PlayingCardTests(unittest.TestCase):
@@ -66,5 +66,7 @@ class PlayingCardTests(unittest.TestCase):
             self.assertFalse(msg = "Failed to raise IndexError Exception")
         finally:
             deck.shuffle_deck()
-            for i in range(0, Deck.CARD_CNT):
+            print("Shuffled deck: ", end = "")
+            for _ in range(0, Deck.CARD_CNT):
                 print(deck.next_card(), end = "")
+            print()
