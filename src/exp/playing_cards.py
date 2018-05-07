@@ -7,6 +7,7 @@ from random import shuffle
 
 
 class Card:
+    
     RANK_FACTOR = 13
     SUIT_FACTOR = 4
 
@@ -14,45 +15,51 @@ class Card:
         if code < 0 or code > 51:
             raise ValueError("Card.__init__: Invalid code ({})".format(code))
         self.code = code
-        rank = floor(code / 4) % Card.RANK_FACTOR
-        if rank == 0:
-            self.rank = 'A'
-        elif rank == 1:
-            self.rank = 'K'
-        elif rank == 2:
-            self.rank = 'Q'
-        elif rank == 3:
-            self.rank = 'J'
-        elif rank == 4:
-            self.rank = 'T'
-        elif rank == 5:
-            self.rank = '9'
-        elif rank == 6:
-            self.rank = '8'
-        elif rank == 7:
-            self.rank = '7'
-        elif rank == 8:
-            self.rank = '6'
-        elif rank == 9:
-            self.rank = '5'
-        elif rank == 10:
-            self.rank = '4'
-        elif rank == 11:
-            self.rank = '3'
+        self.numeric_rank = floor(code / 4) % Card.RANK_FACTOR
+        if self.numeric_rank == 0:
+            self.alphabetic_rank = 'A'
+        elif self.numeric_rank == 1:
+            self.alphabetic_rank = 'K'
+        elif self.numeric_rank == 2:
+            self.alphabetic_rank = 'Q'
+        elif self.numeric_rank == 3:
+            self.alphabetic_rank = 'J'
+        elif self.numeric_rank == 4:
+            self.alphabetic_rank = 'T'
+        elif self.numeric_rank == 5:
+            self.alphabetic_rank = '9'
+        elif self.numeric_rank == 6:
+            self.alphabetic_rank = '8'
+        elif self.numeric_rank == 7:
+            self.alphabetic_rank = '7'
+        elif self.numeric_rank == 8:
+            self.alphabetic_rank = '6'
+        elif self.numeric_rank == 9:
+            self.alphabetic_rank = '5'
+        elif self.numeric_rank == 10:
+            self.alphabetic_rank = '4'
+        elif self.numeric_rank == 11:
+            self.alphabetic_rank = '3'
         else:
-            self.rank = '2'
-        suit = self.code % Card.SUIT_FACTOR
-        if suit == 0:
-            self.suit = 's'
-        elif suit == 1:
-            self.suit = 'h'
-        elif suit == 2:
-            self.suit = 'd'
+            self.alphabetic_rank = '2'
+        self.numeric_suit = self.code % Card.SUIT_FACTOR
+        if self.numeric_suit == 0:
+            self.alphabetic_suit = 's'
+        elif self.numeric_suit == 1:
+            self.alphabetic_suit = 'h'
+        elif self.numeric_suit == 2:
+            self.alphabetic_suit = 'd'
         else:
-            self.suit = 'c'
+            self.alphabetic_suit = 'c'
 
     def __str__(self):
-        return self.rank + self.suit
+        return self.alphabetic_rank + self.alphabetic_suit
+    
+    def getNumRank(self):
+        return self.numeric_rank
+    
+    def getNumSuit(self):
+        return self.numeric_suit
 
 
 class Deck:
