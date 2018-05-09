@@ -1,6 +1,8 @@
 
 import unittest
 from src.exp.holdem_judges import find_best_hand
+from src.exp.holdem_judges import compare
+from src.exp.holdem_judges import Hand
 from src.exp.playing_cards import Card
 from math import floor
 
@@ -82,7 +84,29 @@ class HoldemJudgeTest(unittest.TestCase):
         self.assertEqual("High Card: AdQhJd8s7h", str(find_best_hand(str2cards(case))))
         case = "7hJh8s5hAd9sQh"
         self.assertEqual("High Card: AdQhJh9s8s", str(find_best_hand(str2cards(case))))
-
+        
+    def test_compare(self):
+        h1 = Hand(8, str2cards("AsKsQsJsTs"))
+        h2 = Hand(8, str2cards("QsJsTs9s8s"))
+        self.assertEqual(-1, compare(h1, h2))       
+        h1 = Hand(7, str2cards("AsAhAdAcTs"))
+        h2 = Hand(7, str2cards("AsAhAdAc8s"))
+        self.assertEqual(-1, compare(h1, h2))       
+        h1 = Hand(7, str2cards("KsKhKdKc2s"))
+        h2 = Hand(7, str2cards("2s2h2d2cKs"))
+        self.assertEqual(-1, compare(h1, h2))
+        h1 = Hand(5, str2cards("AsKsQsJs2s"))
+        h2 = Hand(5, str2cards("AsKsQsTs8s"))
+        self.assertEqual(-1, compare(h1, h2))    
+        h1 = Hand(3, str2cards("KsKhKd3c2s"))
+        h2 = Hand(3, str2cards("2s2h2dAcKs"))
+        self.assertEqual(-1, compare(h1, h2))     
+        h1 = Hand(0, str2cards("AsKsQsJs2d"))
+        h2 = Hand(0, str2cards("AsKsTs9d8s"))
+        self.assertEqual(-1, compare(h1, h2))      
+        h1 = Hand(5, str2cards("AsKsQsJs2s"))
+        h2 = Hand(0, str2cards("AsKsQsTs8d"))
+        self.assertEqual(-1, compare(h1, h2))
 
 def str2cards(s):
     ans =[]

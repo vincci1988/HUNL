@@ -30,6 +30,18 @@ class Hand:
         return ans      
 
 
+def compare(hand1, hand2):
+    if hand1.rank > hand2.rank:
+        return -1
+    if hand1.rank < hand2.rank:
+        return 1
+    for j in range(0, 5):
+        if hand1.cards[j].getNumRank() < hand2.cards[j].getNumRank():
+            return -1
+        if hand1.cards[j].getNumRank() > hand2.cards[j].getNumRank():
+            return 1    
+    return 0
+
 def find_best_hand(cards):
     cards.sort(key = lambda card: card.code)
     fv = __flush_analyze(cards)
