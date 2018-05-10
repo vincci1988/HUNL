@@ -1,48 +1,7 @@
 from src.exp.holdem_judges import find_best_hand
 from src.exp.holdem_judges import compare
-    
-
-class Seat:
-    
-    def __init__(self):
-        self.hole_cards = []
-        self.stack = 0
-        self.bet = 0
-        self.player = None
-    
-    def buy_in(self, amt):
-        if self.player != None:
-            self.player.balance -= amt
-            self.stack += amt
-            self.bet = 0
-        else:
-            raise ValueError("Seat.buy_in: Empty seat")
-    
-    def cash_out(self):
-        if self.player != None:
-            self.player.balance += self.stack
-            self.stack = 0
-            self.bet = 0
-            self.player.finalize()
-        else:
-            raise ValueError("Seat.buy_in: Empty seat") 
-    
-    def post(self, amt):
-        if amt > self.stack:
-            amt = self.stack
-        elif amt < 0:
-            amt = 0
-        self.stack -= amt
-        self.bet += amt
-    
-    def return_hole_cards(self):
-        self.hole_cards = []
-        
-    def act(self, status):
-        return self.player.act(status)
-    
-    def report(self, final_status):
-        self.player.report(final_status)
+from src.exp.playing_cards import Deck
+from src.players.player_base import PlayerBase
 
 
 class HUNLTable:
@@ -53,31 +12,45 @@ class HUNLTable:
     DEFAULT_STK = 20000
     
     def __init__(self):
-        self.seats = [Seat(), Seat()]
-        self.board = []
-        self.pot = 0
+        self.seats = [_Seat(), _Seat()]
         self.button = 0
-        self.status = ""
-        self.winner = []
+        self.__reset()
         self.SB = HUNLTable.DEFAULT_SB
         self.BB = HUNLTable.DEFAULT_BB
         self.STK = HUNLTable.DEFAULT_STK
+        
+    def std_match(self, player1, player2, game_cnt = 1, duplicated = False):
+        if not (isinstance(player1, PlayerBase) and isinstance(player2, PlayerBase)):
+            raise TypeError("HUNLTable.std_match: Player type")
+        if game_cnt < 1:
+            raise ValueError("HUNLTable.std_match: Invalid game_cnt")
+        decks = []
+        for _ in range(0, game_cnt):
+            deck = Deck()
+            deck.shuffle_deck()
+            decks.append(deck)                        
+        self.__seat(player1)
+        self.__seat(player2)
+        for j in range(0, game_cnt):
+            self.__std_game(decks[j])
+        self.__clear()
+        if duplicated:
+            self.__seat(player2)
+            self.__seat(player1)
+            for j in range(0, game_cnt):
+                decks[j].reset()
+                self.__std_game(decks[j])
+            self.__clear()
     
-    def seat(self, player):
+    def __seat(self, player):
         if self.seats[0].player == None:
             self.seats[0].player = player
         elif self.seats[1].player == None:
             self.seats[1].player = player
         else:
-            raise IndexError("HUNLTable.seat: Full table")
+            raise IndexError("HUNLTable.__seat: Full table")
     
-    def __reset(self):
-        self.board = []
-        self.pot = 0
-        self.actions = ""
-        self.winner = []
-    
-    def std_game(self, deck):
+    def __std_game(self, deck):
         self.__reset()
         self.seats[0].buy_in(self.STK)
         self.seats[1].buy_in(self.STK)        
@@ -93,9 +66,7 @@ class HUNLTable:
         # preflop
         self.__bet(self.button)
         if len(self.winner) > 0:
-            self.seats[0].report(self.get_status(0))
-            self.seats[1].report(self.get_status(1))
-            self.__ship()
+            self.__win_before_showdown()
         # flop
         if len(self.winner) == 0:
             self.actions += '/'
@@ -104,9 +75,7 @@ class HUNLTable:
             if not self.__players_all_in():
                 self.__bet(bb)
             if len(self.winner) > 0:
-                self.seats[0].report(self.get_status(0))
-                self.seats[1].report(self.get_status(1))
-                self.__ship()
+                self.__win_before_showdown()
         # turn
         if len(self.winner) == 0:
             self.actions += '/'
@@ -114,9 +83,7 @@ class HUNLTable:
             if not self.__players_all_in():
                 self.__bet(bb)
             if len(self.winner) > 0:
-                self.seats[0].report(self.get_status(0))
-                self.seats[1].report(self.get_status(1))
-                self.__ship()
+                self.__win_before_showdown()
         # river
         if len(self.winner) == 0:
             self.actions += '/'
@@ -125,17 +92,24 @@ class HUNLTable:
                 self.__bet(bb)
             if len(self.winner) == 0:
                 self.__showdown()
-                self.seats[0].report(self.get_status(0, True))
-                self.seats[1].report(self.get_status(1, True))
             else:
-                self.seats[0].report(self.get_status(0))
-                self.seats[1].report(self.get_status(1))
-            self.__ship()
-        
+                self.__win_before_showdown()
         self.seats[0].return_hole_cards()
         self.seats[1].return_hole_cards()
         self.seats[0].cash_out()
         self.seats[1].cash_out()
+    
+    def __clear(self):
+        self.seats[0].detach()
+        self.seats[1].detach()
+        self.__reset()
+        self.button = 0
+    
+    def __reset(self):
+        self.board = []
+        self.pot = 0
+        self.actions = ""
+        self.winner = []
         
     def __bet(self, next_to_act):
         action_cnt = 0
@@ -143,7 +117,7 @@ class HUNLTable:
         while action_cnt < 2 or self.seats[0].bet != self.seats[1].bet:
             action_cnt += 1
             other = (next_to_act + 1) % HUNLTable.PLAYER_CNT
-            act = self.seats[next_to_act].act(self.get_status(next_to_act))
+            act = self.seats[next_to_act].act(self.__get_status(next_to_act))
             # 'f' = fold, 'k' = check, 'c' = call, 'r' = bet/raise
             if not self.__check(act, next_to_act, minBet): 
                 if self.seats[next_to_act].bet == self.seats[other].bet: 
@@ -163,7 +137,14 @@ class HUNLTable:
             next_to_act = other
         self.__collect()
         
+    def __win_before_showdown(self):
+        self.seats[0].report(self.__get_status(0))
+        self.seats[1].report(self.__get_status(1))
+        self.__ship()
+        
     def __showdown(self):
+        self.seats[0].report(self.__get_status(0, True))
+        self.seats[1].report(self.__get_status(1, True))
         h0 = find_best_hand(self.seats[0].hole_cards + self.board)
         h1 = find_best_hand(self.seats[1].hole_cards + self.board)
         res = compare(h0, h1) 
@@ -173,6 +154,7 @@ class HUNLTable:
             self.winner.append(self.seats[0])
         else:
             self.winner.append(self.seats[1])
+        self.__ship()
     
     def __ship(self):
         for w in self.winner:
@@ -180,8 +162,8 @@ class HUNLTable:
     
     def __players_all_in(self):
         return self.seats[0].stack == 0 or self.seats[1].stack == 0
-        
-    def get_status(self, j, showdown = False):
+    
+    def __get_status(self, j, showdown = False):
         prvt = "".join([str(card) for card in self.seats[j].hole_cards])
         if showdown:
             prvt += "/" + "".join([str(card) for card in self.seats[(j + 1) % HUNLTable.PLAYER_CNT].hole_cards])
@@ -213,4 +195,51 @@ class HUNLTable:
         self.pot += self.seats[0].bet + self.seats[1].bet
         self.seats[0].bet = 0
         self.seats[1].bet = 0
+
+   
+class _Seat:
     
+    def __init__(self):
+        self.hole_cards = []
+        self.stack = 0
+        self.bet = 0
+        self.player = None
+    
+    def buy_in(self, amt):
+        if self.player != None:
+            self.player.balance -= amt
+            self.stack += amt
+            self.bet = 0
+        else:
+            raise ValueError("_Seat.buy_in: Empty __seat")
+    
+    def cash_out(self):
+        if self.player != None:
+            self.player.balance += self.stack
+            self.stack = 0
+            self.bet = 0
+            self.player.finalize()
+        else:
+            raise ValueError("_Seat.buy_in: Empty __seat") 
+    
+    def detach(self):
+        self.player.reset()
+        self.player = None
+    
+    def post(self, amt):
+        if amt > self.stack:
+            amt = self.stack
+        elif amt < 0:
+            amt = 0
+        self.stack -= amt
+        self.bet += amt
+    
+    def return_hole_cards(self):
+        self.hole_cards = []
+        
+    def act(self, status):
+        return self.player.act(status)
+    
+    def report(self, final_status):
+        self.player.report(final_status)
+

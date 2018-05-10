@@ -3,8 +3,7 @@ from src.players.player_base import PlayerBase
 class HumanPlayer(PlayerBase):
     
     def __init__(self, pid, balance):
-        self.pid = pid
-        self.balance = balance
+        PlayerBase.__init__(self, pid, balance)
         
     def __str__(self):
         return "Human Player[{}]".format(self.pid)

@@ -80,6 +80,9 @@ class Deck:
         card = self.cards[self.cur]
         self.cur += 1
         return card
+    
+    def reset(self):
+        self.cur = 0
 
 
 
